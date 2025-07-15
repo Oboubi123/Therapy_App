@@ -1,6 +1,6 @@
 import { Request, Response, Router } from 'express';
 import { StreamChat } from 'stream-chat';
-import { hashSync } from 'bcrypt';
+import { hashSync, compareSync } from 'bcrypt';
 import { USERS, UserRole } from '../models/user';
 import dotenv from 'dotenv';
 import { sign } from 'jsonwebtoken';
@@ -81,16 +81,14 @@ router.post('/register', async (req: Request, res: Response): Promise<any> => {
 router.post('/login', async (req: Request, res: Response): Promise<any> => {
   const { email, password } = req.body;
   const user = USERS.find((user) => user.email === email);
-  const hashed_password = hashSync(password, SALT);
 
-  if (!user || user.hashed_password !== hashed_password) {
+  if (!user || !compareSync(password, user.hashed_password)) {
     return res.status(400).json({
       message: 'Invalid credentials.',
     });
   }
 
   const token = client.createToken(user.id);
-
   const jwt = sign({ userId: user.id }, process.env.JWT_SECRET!);
 
   return res.json({
@@ -106,30 +104,37 @@ router.post('/login', async (req: Request, res: Response): Promise<any> => {
 
 // Endpoint to create a therapist user
 router.post('/create-therapist', async (req: Request, res: Response): Promise<any> => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  const hashed_password = hashSync(password, SALT);
-  const id = Math.random().toString(36).substring(2, 9);
-  const user = {
-    id,
-    email,
-    hashed_password,
-    role: UserRole.Therapist,
-  };
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required.' });
+    }
 
-  USERS.push(user);
+    const hashed_password = hashSync(password, SALT);
+    const id = Math.random().toString(36).substring(2, 9);
+    const user = {
+      id,
+      email,
+      hashed_password,
+      role: UserRole.Therapist, 
+    };
 
-  await client.upsertUser({
-    id,
-    email,
-    name: email,
-    role: UserRole.Therapist,
-  });
+    await client.upsertUser({
+      id,
+      email,
+      name: email,
+    });
 
-  return res.json({
-    message: 'Therapist user created successfully.',
-    user,
-  });
+    USERS.push(user);
+
+    return res.json({
+      message: 'Therapist user created successfully.',
+      user,
+    });
+  } catch (e: any) {
+    return res.status(500).json({ message: 'Error creating therapist', error: e.message });
+  }
 });
 
 export default router;

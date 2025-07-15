@@ -1,7 +1,7 @@
 {
   "name": "api",
   "version": "1.0.0",
-  "description": "",
+  "description": "This is a simple Node API to create and sign in users with [Stream](https://dub.sh/getstream) and JWT authentication using in-memory data.",
   "main": "index.js",
   "scripts": {
     "start:dev": "nodemon",
@@ -26,5 +26,13 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "stream-chat": "^8.56.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Galaxies-dev/mental-health-api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Galaxies-dev/mental-health-api/issues"
+  },
+  "homepage": "https://github.com/Galaxies-dev/mental-health-api#readme"
 }

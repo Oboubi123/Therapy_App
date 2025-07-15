@@ -9,7 +9,7 @@ export interface Consultation {
   id: string;
   clientId: string;
   therapistId: string;
-  dateTime: string;
+  dateTime: string; 
   status: ConsultationStatus;
   notes?: string;
 }
