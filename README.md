@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Mental Health API
 
 This is a simple Node API to create and sign in users with [Stream](https://dub.sh/getstream) and JWT authentication using in-memory data.
@@ -75,3 +76,5 @@ The API will be available at `http://localhost:3000`
 Enjoyed this project? Learn to use React Native to build production-ready, native mobile apps for both iOS and Android based on your existing web development skills.
 
 <a href="https://galaxies.dev"><img src="banner.png" height="auto" width="100%"></a>
+
+# therapy_app
