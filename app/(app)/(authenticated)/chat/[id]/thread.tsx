@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { View, Text } from 'react-native';
 import { Thread, Channel } from 'stream-chat-expo';
 import { selectedThreadAtom, selectedChannelAtom } from '@/utils/atoms';
 import { useAtom } from 'jotai';
@@ -11,10 +11,17 @@ const Page = () => {
   return (
     <View className="flex-1 pb-safe bg-white">
       <Stack.Screen options={{ title: 'Thread' }} />
-      <Channel channel={selectedChannel} thread={selectedThread} threadList>
-        <Thread />
-      </Channel>
+      {selectedChannel ? (
+        <Channel channel={selectedChannel}>
+          <Thread thread={selectedThread} />
+        </Channel>
+      ) : (
+        <View className="flex-1 justify-center items-center">
+          <Text>No channel available</Text>
+        </View>
+      )}
     </View>
   );
 };
+
 export default Page;

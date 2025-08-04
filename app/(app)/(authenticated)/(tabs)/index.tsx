@@ -2,13 +2,13 @@ import { View, Text, Pressable, TouchableOpacity, FlatList } from 'react-native'
 import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { Link, useFocusEffect } from 'expo-router';
 import { useState, useCallback } from 'react';
-import { useAppointments, ConsultationStatus } from '@/providers/AppointmentProvider';
-import { Consultation } from '@/providers/AppointmentProvider';
+import { useAppointment, ConsultationStatus } from '@/providers/AppointmentProvider';
+import type { Consultation } from '@/providers/AppointmentProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import React from 'react';
 
 const Page = () => {
-  const { getAppointments, updateAppointment } = useAppointments();
+  const { getAppointments, updateAppointment } = useAppointment();
   const [appointments, setAppointments] = useState<Consultation[]>([]);
   const { isTherapist } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
