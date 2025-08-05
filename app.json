@@ -68,9 +68,11 @@
         "expo-build-properties",
         {
           "android": {
+            "jsEngine": "jsc",
             "extraMavenRepos": ["../../node_modules/@notifee/react-native/android/libs"]
           },
           "ios": {
+            "jsEngine": "jsc",
             "infoPlist": {
               "UIBackgroundModes": ["audio", "fetch", "remote-notification"]
             }

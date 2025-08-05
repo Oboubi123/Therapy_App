@@ -78,5 +78,8 @@
     "react-test-renderer": "18.3.1",
     "typescript": "^5.3.3"
   },
+  "overrides": {
+    "@expo/metro-runtime": "5.0.4"
+  },
   "private": true
 }
