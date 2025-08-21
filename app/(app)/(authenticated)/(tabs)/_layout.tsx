@@ -1,32 +1,16 @@
-import { Redirect, Tabs } from 'expo-router';
-import { useAuth } from '@/providers/AuthProvider';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import BlurTabBarBackground from '@/components/TabBarBackground.ios';
 import { HapticTab } from '@/components/HapticTab';
-import { ActivityIndicator, View } from 'react-native';
+import { useAuth } from '@/providers/AuthProvider';
 
-const Layout = () => {
-  const { authState, initialized } = useAuth();
-  
-  // Wait for auth to be fully initialized
-  if (!initialized) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#0d6c9a" />
-      </View>
-    );
-  }
-
-  // Explicit role checking
-  const showRecordingTab = 
-    authState?.authenticated === true && 
-    authState?.role === 'therapist';
+export default function TabLayout() {
+  const { isTherapist } = useAuth();
 
   return (
-    <Tabs 
-      screenOptions={{
-        headerTitleAlign: 'center',
-        ...(process.env.EXPO_OS === 'ios'
+    <Tabs
+      screenOptions={
+        process.env.EXPO_OS === 'ios'
           ? {
               tabBarActiveTintColor: '#0d6c9a',
               tabBarInactiveTintColor: '#8E8E93',
@@ -42,55 +26,53 @@ const Layout = () => {
               tabBarInactiveTintColor: '#8E8E93',
               headerShown: true,
             }
-        )
-      }}>
-      <Tabs.Screen 
-        name='index' 
+      }
+    >
+      <Tabs.Screen
+        name="index"
         options={{
-          title: 'Home',
           tabBarLabel: 'Home',
+          title: 'Home',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" color={color} size={size} />
+            <Ionicons name="home-outline" size={size} color={color} />
           ),
         }}
       />
-      <Tabs.Screen 
-        name='chats' 
+
+      <Tabs.Screen
+        name="chats"
         options={{
-          title: 'Chats',
           tabBarLabel: 'Chats',
+          title: 'Chats',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles-outline" color={color} size={size} />
+            <Ionicons name="chatbubbles-outline" size={size} color={color} />
           ),
         }}
       />
-      
-      {/* Recording tab - only for therapists */}
-      {showRecordingTab && (
-        <Tabs.Screen 
-          name='recording' 
-          options={{
-            title: 'Recording',
-            tabBarLabel: 'Recording',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="recording-outline" color={color} size={size} />
-            ),
-          }}
-        />
-      )}
-      
-      <Tabs.Screen 
-        name='profile' 
+
+      {/* ✅ Only visible if therapist */}
+      <Tabs.Screen
+        name="recordings"
         options={{
-          title: 'Profile',
-          tabBarLabel: 'Profile',
+          tabBarLabel: 'Recordings',
+          title: 'Recordings',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" color={color} size={size} />
+            <Ionicons name="recording-outline" size={size} color={color} />
+          ),
+          href: isTherapist ? '/recordings' : null, // 👈 hides tab if not therapist
+        }}
+      />
+
+      <Tabs.Screen
+        name="profile"
+        options={{
+          tabBarLabel: 'Profile',
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
           ),
         }}
       />
     </Tabs>
   );
-};
-
-export default Layout;
+}
