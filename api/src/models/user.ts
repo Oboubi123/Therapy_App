@@ -24,4 +24,10 @@ export const USERS: User[] = [
     role: UserRole.Therapist,
     hashed_password: '$2b$10$U6aHdY7D9g9TxZ5bQU4X4eIrDEMao6j9G8hb1UBSs1QV95Pe/QWJe', // dummy "123456"
   },
+  {
+    id: "9vkqhc7",
+    email: "mell@uenr.dev",
+    hashed_password: "$2b$10$U6aHdY7D9g9TxZ5bQU4X4eIrDEMao6j9G8hb1UBSs1QV95Pe/QWJe",
+    role : UserRole.Therapist
+  }
 ];
