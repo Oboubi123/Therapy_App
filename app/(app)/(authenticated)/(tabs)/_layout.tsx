@@ -1,8 +1,8 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import BlurTabBarBackground from '@/components/TabBarBackground.ios';
 import { HapticTab } from '@/components/HapticTab';
+import BlurTabBarBackground from '@/components/TabBarBackground.ios';
 import { useAuth } from '@/providers/AuthProvider';
+import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
 
 export default function TabLayout() {
   const { isTherapist } = useAuth();

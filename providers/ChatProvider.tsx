@@ -1,87 +1,84 @@
-/**
- * ChatProvider.tsx
- *
- * This provider integrates Stream Chat functionality into the application.
- * It manages the connection to Stream's chat service, handling user authentication
- * and providing the chat client to child components.
- */
-import { PropsWithChildren, useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
 import { StreamChat } from 'stream-chat';
 import { Chat, OverlayProvider } from 'stream-chat-expo';
-import { useAuth } from './AuthProvider';
+import { useAuth } from '@/providers/AuthProvider';
+import { PropsWithChildren, useEffect, useState, useRef } from 'react';
+import { ActivityIndicator, View, Text } from 'react-native';
 
-// Initialize the Stream Chat client with the API key from environment variables
-const client = StreamChat.getInstance(process.env.EXPO_PUBLIC_STREAM_ACCESS_KEY as string);
-
-/**
- * Custom theme configuration for the Stream Chat UI components
- * Makes channel previews have a transparent background to match app styling
- */
-const chatTheme = {
-  channelPreview: {
-    container: {
-      backgroundColor: 'transparent',
-    },
-  },
-};
-
-/**
- * Provider component that initializes and manages the Stream Chat connection
- * Connects the current user to Stream Chat using their authentication details
- */
 export default function ChatProvider({ children }: PropsWithChildren) {
-  // Track whether the chat client is ready (connected)
-  const [isReady, setIsReady] = useState(false);
-  // Get authentication state from AuthProvider
+  const [chatClient] = useState(() => 
+    StreamChat.getInstance(process.env.EXPO_PUBLIC_STREAM_ACCESS_KEY as string, {
+      timeout: 10000, // 10 second timeout
+    })
+  );
   const { authState } = useAuth();
+  const [isReady, setIsReady] = useState(false);
+  const connectionAttempted = useRef(false);
 
-  // Connect to Stream Chat when the user is authenticated
   useEffect(() => {
-    // Skip if user is not authenticated
-    if (!authState?.authenticated) {
+    // Skip if user is not authenticated or connection already attempted
+    if (!authState?.authenticated || connectionAttempted.current) {
       return;
     }
 
-    /**
-     * Connect the current user to Stream Chat using their ID and token
-     */
     const connectUser = async () => {
-      await client.connectUser(
-        {
-          id: authState.user_id!,
-          name: authState.email!,
-        },
-        authState.token!
-      );
-      setIsReady(true);
+      try {
+        connectionAttempted.current = true;
+        
+        console.log('Connecting to Stream Chat with user:', {
+          id: authState.user_id,
+          name: authState.email,
+        });
+        
+        await chatClient.connectUser(
+          {
+            id: authState.user_id!,
+            name: authState.email!,
+          },
+          authState.token!
+        );
+        
+        console.log('Successfully connected to Stream Chat');
+        setIsReady(true);
+      } catch (error) {
+        console.error('Failed to connect user to chat:', error);
+        connectionAttempted.current = false; // Allow retry on failure
+        // Optionally show error to user or implement retry logic
+      }
     };
 
     connectUser();
 
-    // Cleanup function to disconnect user when component unmounts
-    // or when authentication state changes
+    // Cleanup function - disconnect when component unmounts
     return () => {
-      if (isReady) {
-        client.disconnectUser();
-      }
-      setIsReady(false);
+      const disconnect = async () => {
+        try {
+          if (chatClient.user) {
+            await chatClient.disconnectUser();
+            console.log('Disconnected from Stream Chat');
+          }
+        } catch (error) {
+          console.error('Error disconnecting from chat:', error);
+        }
+        setIsReady(false);
+        connectionAttempted.current = false;
+      };
+      
+      disconnect();
     };
-  }, [authState?.authenticated]);
+  }, [authState?.authenticated, chatClient, authState?.user_id, authState?.email, authState?.token]);
 
-  // Show loading indicator while connecting to Stream Chat
   if (!isReady) {
     return (
-      <View className="flex-1 justify-center items-center">
-        <ActivityIndicator />
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text className="mt-2">Loading chat...</Text>
       </View>
     );
   }
 
-  // Provide Stream Chat context to child components
   return (
-    <OverlayProvider value={{ style: chatTheme }}>
-      <Chat client={client}>{children}</Chat>
+    <OverlayProvider>
+      <Chat client={chatClient}>{children}</Chat>
     </OverlayProvider>
   );
 }
