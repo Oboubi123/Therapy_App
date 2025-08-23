@@ -14,11 +14,13 @@
     "@expo/vector-icons": "^14.1.0",
     "@hookform/resolvers": "^5.2.1",
     "@react-native-community/datetimepicker": "8.4.1",
+    "@react-native-community/netinfo": "^11.4.1",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
     "@stream-io/react-native-webrtc": "^125.4.1",
     "@stream-io/video-react-native-sdk": "^1.20.7",
+    "axios": "^1.11.0",
     "expo": "~53.0.20",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",
@@ -32,7 +34,6 @@
     "expo-image-picker": "~16.1.4",
     "expo-linking": "~7.1.7",
     "expo-media-library": "~17.1.7",
-    "expo-network": "~7.1.5",
     "expo-router": "~5.1.4",
     "expo-secure-store": "~14.2.3",
     "expo-sharing": "~13.1.5",
@@ -64,6 +65,11 @@
     "typescript": "~5.8.3",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0"
+  },
+  "expo": {
+    "android": {
+      "reactNativeArchitectures": ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
+    }
   },
   "private": true
 }
