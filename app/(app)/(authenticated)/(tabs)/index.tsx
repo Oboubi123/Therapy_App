@@ -1,15 +1,29 @@
-import { View, Text, ScrollView } from 'react-native';
 import { Link } from 'expo-router';
+import { ScrollView, Text, View } from 'react-native';
 
 const Page = () => {
   return (
-    <ScrollView className="flex-1">
-      <Link href="/consultation/schedule" asChild>
-        <View className="p-4">
-          <Text className="text-lg font-bold mb-2">Welcome Back!</Text>
-          <Text className="text-gray-500 mb-4">Here's your daily overview</Text>
+    <ScrollView className="flex-1 p-4">
+      <View className="p-4">
+        <Link href="/consultation/schedule">
+          <View className='bg-gray-100 rounded-lg p-4 dark:bg-gray-800'>
+            <Text className="text-lg font-bold text-gray-900 dark:text-white">
+              Schedule Consultation
+            </Text>
+          </View>
+        </Link>
 
-          {/* Dummy items */}
+        <Link href="/(app)/(authenticated)/(modal)/create-chat">
+          <View className='bg-gray-100 rounded-lg p-4 dark:bg-gray-800'>
+            <Text className="text-lg font-bold text-gray-900 dark:text-white">
+              Create Chat
+            </Text>
+          </View>
+        </Link>
+          <View className="bg-gray-100 rounded-lg p-4 dark:bg-gray-800">
+            <Text className="text-lg font-bold text-gray-900 dark:text-white">Welcome Back!</Text>
+            <Text className="text-gray-600 dark:text-white">Here's your daily overview</Text>
+          </View>
           {[...Array(10)].map((_, index) => (
             <View
               key={index}
@@ -25,9 +39,8 @@ const Page = () => {
             </View>
           ))}
         </View>
-      </Link>
     </ScrollView>
   );
 };
 
-export default Page;
+export default Page; 
