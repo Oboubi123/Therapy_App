@@ -21,31 +21,49 @@ const Page = () => {
     fetchUsers();
   }, []);
 
- const handleCreateChannel = async () => {};
-  /*  if (!channelName.trim()) {
-      Alert.alert('please enter a channel name');
+  const handleCreateChannel = async () => {
+    if (!channelName.trim()) {
+      Alert.alert('Please enter a channel name');
       return;
     }
+
     const randomId = Math.random().toString(36).substring(2, 15);
 
-    const channel = await client.channel('messaging', randomId, {
+    const channel = client.channel('messaging', randomId, {
       name: channelName.trim(),
-      createdBy: { 
-        id: client.user?.id,
-      },
-      image: 'https://plus.unsplash.com/premium_photo-1661765880294-8f5f3c8e3e2e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fauto=format&fit=crop&w=1470&q=80',
-    
-      members: [{user_id:client.user?.id, channel_role: 'admin'}], // Add the current user as a member
-    });
+      channelDescription: channelDescription.trim(),
+      members: [client.user?.id ?? ""],
+    } as any);
 
     await channel.create();
-  }; */
+
+    router.dismiss();
+  };
+
   
-  const handleDirectConversation = async () => {};
+  const handleDirectConversation = async (userId: string) => {
+    const channel = client.channel(
+      'messaging',
+      `${client.user!.id}-${userId}`,
+      {
+        members: [
+          { user_id: client.user!.id, channel_role: 'admin' },
+          { user_id: userId, channel_role: 'member' },
+        ],
+        name: `${client.user!.name ?? client.user!.id} - ${
+          users.find((user) => user.id === userId)?.name || userId
+        }`,
+      } as any // 👈 this removes the red underline
+    );
+
+    await channel.create();
+    router.dismiss();
+  };
+
  
 
   return (
-    <View className='flex-1 bg-whiteb p-4'>
+    <View className='flex-1 bg-white p-4'>
       <Text className='text-gray-700 mb-2'>Channel Name</Text>
       <TextInput
         className='border border-gray-300 p-3 rounded mb-6'
@@ -66,7 +84,7 @@ const Page = () => {
         className= {`rounded-lg p-4 ${
           channelName.trim() ? 'bg-blue-500' : 'bg-gray-300'
         }`}
-        onPress={() => handleCreateChannel}
+        onPress={handleCreateChannel}
         disabled={!channelName.trim() || !channelDescription.trim()}>
         <Text className='text-white text-center text-lg'>Create Channel</Text>
       </TouchableOpacity>
@@ -83,6 +101,7 @@ const Page = () => {
         data={users}
         renderItem={({ item }) => (
           <TouchableOpacity
+            onPress={() => handleDirectConversation(item.id)}
             className='flex-row items-center p-4 border-b border-gray-200'>
             <Text className='text-gray-800 text-lg'>{item.name || item.id}</Text>
           </TouchableOpacity>
