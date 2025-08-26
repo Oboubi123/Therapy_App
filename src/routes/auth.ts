@@ -1,20 +1,29 @@
 import { Request, Response, Router } from 'express';
 import { StreamChat } from 'stream-chat';
-import { hashSync } from 'bcrypt';
+import { hashSync, compareSync, genSaltSync } from 'bcrypt';
 import { USERS, UserRole } from '../models/user';
 import dotenv from 'dotenv';
 import { sign } from 'jsonwebtoken';
+
 // Load environment variables
 dotenv.config();
 
 const router = Router();
 
-const SALT = process.env.SALT as string;
+// Generate salt for bcrypt
+const saltRounds = 10;
+const salt = genSaltSync(saltRounds);
+
 const streamApiKey = process.env.STREAM_API_KEY;
 const streamApiSecret = process.env.STREAM_API_SECRET;
+const jwtSecret = process.env.JWT_SECRET;
 
 if (!streamApiKey || !streamApiSecret) {
   throw new Error('STREAM_API_KEY and STREAM_API_SECRET must be defined in environment variables');
+}
+
+if (!jwtSecret) {
+  throw new Error('JWT_SECRET must be defined in environment variables');
 }
 
 const client = StreamChat.getInstance(streamApiKey, streamApiSecret);
@@ -44,7 +53,7 @@ router.post('/register', async (req: Request, res: Response): Promise<any> => {
   }
 
   try {
-    const hashed_password = hashSync(password, SALT);
+    const hashed_password = hashSync(password, salt);
     const id = Math.random().toString(36).substring(2, 9);
     const user = {
       id,
@@ -61,9 +70,11 @@ router.post('/register', async (req: Request, res: Response): Promise<any> => {
     });
 
     const token = client.createToken(id);
+    const jwt = sign({ userId: user.id }, jwtSecret);
 
     return res.json({
       token,
+      jwt,
       user: {
         id: user.id,
         email: user.email,
@@ -71,8 +82,9 @@ router.post('/register', async (req: Request, res: Response): Promise<any> => {
       },
     });
   } catch (e) {
-    return res.json({
-      message: 'User already exists.',
+    console.error('Registration error:', e);
+    return res.status(500).json({
+      message: 'Registration failed.',
     });
   }
 });
@@ -81,17 +93,16 @@ router.post('/register', async (req: Request, res: Response): Promise<any> => {
 router.post('/login', async (req: Request, res: Response): Promise<any> => {
   const { email, password } = req.body;
   const user = USERS.find((user) => user.email === email);
-  const hashed_password = hashSync(password, SALT);
 
-  if (!user || user.hashed_password !== hashed_password) {
+  // Fix: Compare password instead of hashing input
+  if (!user || !compareSync(password, user.hashed_password)) {
     return res.status(400).json({
       message: 'Invalid credentials.',
     });
   }
 
   const token = client.createToken(user.id);
-
-  const jwt = sign({ userId: user.id }, process.env.JWT_SECRET!);
+  const jwt = sign({ userId: user.id }, jwtSecret);
 
   return res.json({
     token,
@@ -108,7 +119,15 @@ router.post('/login', async (req: Request, res: Response): Promise<any> => {
 router.post('/create-therapist', async (req: Request, res: Response): Promise<any> => {
   const { email, password } = req.body;
 
-  const hashed_password = hashSync(password, SALT);
+  // Check if user already exists
+  const existingUser = USERS.find((user) => user.email === email);
+  if (existingUser) {
+    return res.status(400).json({
+      message: 'User already exists.',
+    });
+  }
+
+  const hashed_password = hashSync(password, salt);
   const id = Math.random().toString(36).substring(2, 9);
   const user = {
     id,
@@ -119,17 +138,24 @@ router.post('/create-therapist', async (req: Request, res: Response): Promise<an
 
   USERS.push(user);
 
-  await client.upsertUser({
-    id,
-    email,
-    name: email,
-    role: UserRole.Therapist,
-  });
+  try {
+    await client.upsertUser({
+      id,
+      email,
+      name: email,
+      role: UserRole.Therapist,
+    });
 
-  return res.json({
-    message: 'Therapist user created successfully.',
-    user,
-  });
+    return res.json({
+      message: 'Therapist user created successfully.',
+      user,
+    });
+  } catch (error) {
+    console.error('Stream Chat user creation error:', error);
+    return res.status(500).json({
+      message: 'Failed to create therapist user.',
+    });
+  }
 });
 
 export default router;
