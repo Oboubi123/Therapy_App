@@ -1,8 +1,16 @@
 import { StreamChat } from 'stream-chat';
-import { Chat, OverlayProvider } from 'stream-chat-expo';
+import { ChannelPreview, Chat, OverlayProvider } from 'stream-chat-expo';
 import { useAuth } from '@/providers/AuthProvider';
 import { PropsWithChildren, useEffect, useState, useRef } from 'react';
 import { ActivityIndicator, View, Text } from 'react-native';
+
+const chatTheme = {
+  ChannelPreview: {
+    container: {
+      backgroundColor: "transparent"
+    }
+  }
+};
 
 export default function ChatProvider({ children }: PropsWithChildren) {
   const [chatClient] = useState(() => 

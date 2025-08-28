@@ -31,11 +31,16 @@ const Page = () => {
 
     const channel = client.channel('messaging', randomId, {
       name: channelName.trim(),
+      createdBy: {
+        id: [client.user?.id],
+      },
+      image: 
+        'https://plus.unsplash.com/premium_photo-1683865775849-b958669dca26?q=80&w=1632&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
       channelDescription: channelDescription.trim(),
-      members: [client.user?.id ?? ""],
+      members: [{ user_id: client.user!.id, channel_role: 'admin' }],
     } as any);
 
-    await channel.create();
+    channel.create();
 
     router.dismiss();
   };
@@ -56,7 +61,7 @@ const Page = () => {
       } as any // 👈 this removes the red underline
     );
 
-    await channel.create();
+    channel.create();
     router.dismiss();
   };
 

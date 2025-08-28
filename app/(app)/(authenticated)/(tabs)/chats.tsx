@@ -1,6 +1,6 @@
 import { View, Text, Pressable, TouchableOpacity } from 'react-native'
 import { useAuth } from '@/providers/AuthProvider';
-import { useChatContext } from 'stream-chat-expo';
+import { ChannelList, ChannelPreview, ChannelPreviewMessenger, useChatContext, } from 'stream-chat-expo';
 import { Stack, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,9 +9,25 @@ const Page = () => {
   const { client } = useChatContext();
   const router = useRouter();
 
+  const filter ={
+    members: {
+      $in: [client.user!.id],
+    },
+  }
+
+    const CustomListItem = (props: any) => {
+      const {unread } = props;
+      const backgroundColor = unread ? 'bg-blue-100' : 'bg-white';
+
+      return(
+        <View className={`${backgroundColor}`}>
+          <ChannelPreviewMessenger {...props} />
+        </View>
+      )
+    }
 
   return (
-    <View className="flex-1">
+    <View className="flex-1 bg-gray-400">
       <Stack.Screen
         options={{
           headerRight: () => (
@@ -27,7 +43,12 @@ const Page = () => {
           ),
         }}
       />
-      <Text>Chats</Text>
+      <ChannelList filters={filter}
+      onSelect={(channel) =>{
+        router.push(`/(app)/(authenticated)/chat/${channel.id}`);
+      }}
+      Preview={CustomListItem}
+      />
     </View>
   )
 }
