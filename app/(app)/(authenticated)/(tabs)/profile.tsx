@@ -1,11 +1,13 @@
 import { useAuth } from '@/providers/AuthProvider';
 import { Pressable, Text, View } from 'react-native';
+import { useChatContext } from 'stream-chat-expo';
+
 
 const Page = () => {
-  //const { client } = useChatContext();
+  const { client } = useChatContext();
   const { signOut } = useAuth();
 
-  //const user = client.user;
+  const user = client.user;
 
   const handleSignOut = async () => {
     await signOut();
@@ -15,8 +17,8 @@ const Page = () => {
     <View className="flex-1 bg-white p-4 justify-center">
       {/* User Info Section */}
       <View className="items-center mb-8">
-       {/*<Text className="text-xl font-bold">{user?.name || 'User'}</Text>
-        <Text className="text-gray-500">@{user?.id || 'username'}</Text>*/}
+        <Text className="text-xl font-bold">{user?.name || 'User'}</Text>
+        <Text className="text-gray-500">@{user?.id || 'username'}</Text>
       </View>
 
       {/* User Details */}
@@ -24,7 +26,9 @@ const Page = () => {
         <View className="flex-row justify-between">
           <Text className="text-gray-500">Last Active</Text>
           <Text>
-            {/*user?.last_active ? new Date(user.last_active).toLocaleDateString() : 'Not available'}*/}
+            {user?.last_active
+              ? new Date(user.last_active).toLocaleDateString()
+              : 'Not available'}
           </Text>
         </View>
       </View>

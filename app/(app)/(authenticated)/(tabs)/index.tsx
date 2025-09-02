@@ -1,46 +1,206 @@
-import { Link } from 'expo-router';
-import { ScrollView, Text, View } from 'react-native';
+import { Consultation, ConsultationStatus, useAppointments } from '@/providers/AppointmentProvider';
+import { useAuth } from '@/providers/AuthProvider';
+import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Link, useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { FlatList, Pressable, Text, TouchableOpacity, View } from 'react-native';
 
 const Page = () => {
-  return (
-    <ScrollView className="flex-1 p-4">
-      <View className="p-4">
-        <Link href="/consultation/schedule">
-          <View className='bg-gray-100 rounded-lg p-4 dark:bg-gray-800'>
-            <Text className="text-lg font-bold text-gray-900 dark:text-white">
-              Schedule Consultation
-            </Text>
-          </View>
-        </Link>
+  const { getAppointments, updateAppointment } = useAppointments();
+  const [appointments, setAppointments] = useState<Consultation[]>([]);
+  const { isTherapist } = useAuth();
+  const [refreshing, setRefreshing] = useState(false);
 
-        <Link href="/(app)/(authenticated)/(modal)/create-chat">
-          <View className='bg-gray-100 rounded-lg p-4 dark:bg-gray-800'>
-            <Text className="text-lg font-bold text-gray-900 dark:text-white">
-              Create Chat
-            </Text>
-          </View>
-        </Link>
-          <View className="bg-gray-100 rounded-lg p-4 dark:bg-gray-800">
-            <Text className="text-lg font-bold text-gray-900 dark:text-white">Welcome Back!</Text>
-            <Text className="text-gray-600 dark:text-white">Here's your daily overview</Text>
-          </View>
-          {[...Array(10)].map((_, index) => (
-            <View
-              key={index}
-              className="bg-white rounded-lg p-4 mb-3 border border-gray-200 shadow-sm"
-            >
-              <Text className="text-base font-semibold mb-1">
-                Item {index + 1}
-              </Text>
-              <Text className="text-sm text-gray-500">
-                This is a sample item with some longer description text to show
-                how content flows.
-              </Text>
+  useFocusEffect(
+    useCallback(() => {
+      loadAppointmenets();
+    }, [])
+  );
+
+  const loadAppointmenets = async () => {
+    setRefreshing(true);
+    const appointments = await getAppointments();
+    setAppointments(appointments);
+    setRefreshing(false);
+  };
+
+  const callTherapist = () => {
+    console.log('call therapist');
+  };
+
+  const confirmSession = async (id: string) => {
+    const updatedAppointment = await updateAppointment(id, {
+      status: ConsultationStatus.Confirmed,
+    });
+    setAppointments(
+      appointments.map((appointment) =>
+        appointment.id === id ? { ...appointment, status: updatedAppointment.status } : appointment
+      )
+    );
+  };
+
+  const cancelSession = async (id: string) => {
+    const updatedAppointment = await updateAppointment(id, {
+      status: ConsultationStatus.Cancelled,
+    });
+    setAppointments(
+      appointments.map((appointment) =>
+        appointment.id === id ? { ...appointment, status: updatedAppointment.status } : appointment
+      )
+    );
+  };
+
+  return (
+    <View className="flex-1 bg-gray-50 px-4 pt-4">
+      {!isTherapist && (
+        <FlatList
+          keyExtractor={(item) => item.id}
+          data={appointments}
+          onRefresh={loadAppointmenets}
+          showsVerticalScrollIndicator={false}
+          refreshing={refreshing}
+          contentContainerStyle={{ rowGap: 12}}
+          ListHeaderComponent={() => (
+            <View className="flex-row gap-4 mb-6">
+              {/* Action Cards */}
+              <Link href="/consultation/schedule" asChild>
+                <TouchableOpacity className="flex-1 bg-blue-600 rounded-2xl p-4 items-start">
+                  <MaterialIcons name="calendar-today" size={32} color="white" />
+                  <Text className="text-white text-lg font-bold mt-2">Book Consultation</Text>
+                  <Text className="text-white/80 text-sm mt-1">Schedule your next session</Text>
+                </TouchableOpacity>
+              </Link>
+
+              <Link href="/chats" asChild>
+                <TouchableOpacity className="flex-1 bg-purple-600 rounded-2xl p-4 items-start">
+                  <MaterialIcons name="chat" size={32} color="white" />
+                  <Text className="text-white text-lg font-bold mt-2">Join Chats</Text>
+                  <Text className="text-white/80 text-sm mt-1">Connect with support groups</Text>
+                </TouchableOpacity>
+              </Link>
             </View>
-          ))}
-        </View>
-    </ScrollView>
+          )}
+          renderItem={({ item }) => (
+            <Link href={`/consultation/${item.id}`} asChild>
+              <TouchableOpacity
+                className={`border-l-4 pl-3 py-2 ${
+                  item.status === ConsultationStatus.Confirmed
+                    ? 'border-green-500'
+                    : item.status === ConsultationStatus.Pending
+                    ? 'border-yellow-500'
+                    : item.status === ConsultationStatus.Cancelled
+                    ? 'border-red-500'
+                    : 'border-gray-500'
+                }`}>
+                <Text className="font-semibold">
+                  {item.status === ConsultationStatus.Confirmed
+                    ? 'Confirmed Session'
+                    : item.status === ConsultationStatus.Pending
+                    ? 'Pending Session'
+                    : item.status === ConsultationStatus.Cancelled
+                    ? 'Cancelled Session'
+                    : 'Completed Session'}
+                </Text>
+                <Text className="text-gray-600">{new Date(item.dateTime).toLocaleString()}</Text>
+                <Text className="text-gray-600">Dr. Simon</Text>
+              </TouchableOpacity>
+            </Link>
+          )}
+          ListEmptyComponent={() => (
+            <View className="border-l-4 border-sky-500 pl-3 py-2">
+              <Text className="font-semibold">No appointments</Text>
+            </View>
+          )}
+          ListFooterComponent={() => (
+            <View className="bg-orange-50 rounded-2xl p-4 mb-6 mt-4">
+              <View className="flex-row items-center mb-3">
+                <FontAwesome5 name="phone-alt" size={20} color="#f97316" />
+                <Text className="text-lg font-bold ml-2 text-orange-500">Call Your Therapist</Text>
+              </View>
+              <Text className="text-gray-700">
+                Need immediate support? Your therapist is just a call away during business hours.
+              </Text>
+              <Pressable
+                className="bg-orange-500 rounded-lg py-2 px-4 mt-3 self-start"
+                onPress={callTherapist}>
+                <Text className="text-white font-semibold">Call Now</Text>
+              </Pressable>
+            </View>
+          )}
+        />
+      )}
+
+      {isTherapist && (
+        <FlatList
+          data={appointments}
+          showsVerticalScrollIndicator={false}
+          keyExtractor={(item) => item.id}
+          onRefresh={loadAppointmenets}
+          refreshing={refreshing}
+          contentContainerStyle={{ rowGap: 12}}
+          ListHeaderComponent={() => (
+            <View className="mb-4">
+              <Text className="text-xl font-bold">Upcoming Appointments</Text>
+              <Text className="text-gray-600">Manage your scheduled sessions</Text>
+            </View>
+          )}
+          renderItem={({ item }) => (
+            <TouchableOpacity className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+              <View className="flex-row justify-between items-center">
+                <View>
+                  <View className="flex-row items-center">
+                    {item.status === ConsultationStatus.Pending && (
+                      <Ionicons name="time-outline" size={24} color="#6B7280" />
+                    )}
+                    {item.status === ConsultationStatus.Confirmed && (
+                      <Ionicons name="checkmark-circle-outline" size={24} color="#059669" />
+                    )}
+                    {item.status === ConsultationStatus.Cancelled && (
+                      <Ionicons name="close-circle-outline" size={24} color="#DC2626" />
+                    )}
+                    {item.status === ConsultationStatus.Completed && (
+                      <Ionicons name="checkmark-done-circle-outline" size={24} color="#1D4ED8" />
+                    )}
+                    <Text className="font-semibold text-lg ml-2">{item.status}</Text>
+                  </View>
+                  <Text className="text-gray-600">{new Date(item.dateTime).toLocaleString()}</Text>
+                  <Text className="text-gray-700 mt-1">Client: {item.clientEmail}</Text>
+                </View>
+                {item.status === ConsultationStatus.Pending && (
+                  <View className="flex-row gap-2">
+                    <TouchableOpacity
+                      className="bg-blue-600 px-4 py-2 rounded-lg"
+                      onPress={() => confirmSession(item.id)}>
+                      <Text className="text-white font-medium">Confirm</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="bg-red-600 px-4 py-2 rounded-lg"
+                      onPress={() => cancelSession(item.id)}>
+                      <Text className="text-white font-medium">Cancel</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {item.status === ConsultationStatus.Confirmed && (
+                  <Link href={`/consultation/${item.id}`} asChild>
+                    <TouchableOpacity className="bg-blue-600 px-4 py-2 rounded-lg">
+                      <Text className="text-white font-medium">Enter Session</Text>
+                    </TouchableOpacity>
+                  </Link>
+                )}
+              </View>
+            </TouchableOpacity>
+          )}
+          ListEmptyComponent={() => (
+            <View className="bg-gray-50 rounded-lg p-6 items-center">
+              <Text className="font-semibold text-lg text-center">No upcoming appointments</Text>
+              <Text className="text-gray-600 text-center mt-1">Your schedule is clear for now</Text>
+            </View>
+          )}
+        />
+      )}
+    </View>
   );
 };
 
-export default Page; 
+export default Page;
