@@ -1,18 +1,18 @@
+import { useAuth } from '@/providers/AuthProvider';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Link } from 'expo-router';
+import React, { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import {
-  Text,
+  ActivityIndicator,
   Alert,
-  TextInput,
-  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
+  Text,
+  TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
-import React, { useState } from 'react';
-import { useAuth } from '@/providers/AuthProvider';
-import { Link } from 'expo-router';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 const schema = z.object({
@@ -36,7 +36,7 @@ const Page = () => {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      email: 'oboubimakaveli@gmail.com',
+      email: 'oboubimakaveli@uenr.dev',
       password: '123456',
     },
     mode: 'onChange',

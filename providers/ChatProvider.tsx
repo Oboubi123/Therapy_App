@@ -29,6 +29,7 @@ export default function ChatProvider({ children }: PropsWithChildren) {
     }
 
     const connectUser = async () => {
+      setIsReady(true);
       try {
         connectionAttempted.current = true;
         
@@ -63,6 +64,7 @@ export default function ChatProvider({ children }: PropsWithChildren) {
           if (chatClient.user) {
             await chatClient.disconnectUser();
             console.log('Disconnected from Stream Chat');
+            setIsReady(false);
           }
         } catch (error) {
           console.error('Error disconnecting from chat:', error);

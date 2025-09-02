@@ -1,7 +1,9 @@
 import { useAuth } from '@/providers/AuthProvider';
+import { selectedThreadAtom , selectedChannelAtom} from '@/utils/atoms';
 import { useLocalSearchParams, useRouter, Stack, Link } from 'expo-router'
 import { View, Text, TouchableOpacity} from 'react-native'
 import { MessageInput, useChatContext } from 'stream-chat-expo';
+import { useAtom } from 'jotai';
 import { Channel, MessageList } from 'stream-chat-expo';
 
 const Page = () => {
@@ -10,11 +12,21 @@ const Page = () => {
   const channel = client.channel('messaging', id);
   const { isTherapist } = useAuth();
   const router = useRouter();
+  const [selectedThread, setSelectedThread] = useAtom(selectedThreadAtom);
+  const [selectedChannel, setSelectedChannel] = useAtom(selectedChannelAtom);
 
   if (!channel){
+    return (
     <View className='flex-1 items-center justify-center'>
       <Text>Channel not found</Text>
     </View>
+    );
+  }
+
+  const handleSelectThread = (thread: any) => {
+    setSelectedThread(thread);
+    setSelectedChannel(channel);
+    router.push(`/(app)/(authenticated)/chat/${id}/thread`);
   }
 
   return (
@@ -36,7 +48,7 @@ const Page = () => {
         }}
       />
       <Channel channel={channel}>
-        <MessageList />
+        <MessageList onThreadSelect={handleSelectThread} />
         <MessageInput />
         </Channel> 
     </View>

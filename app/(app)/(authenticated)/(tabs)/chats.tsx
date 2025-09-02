@@ -1,6 +1,6 @@
 import { View, Text, Pressable, TouchableOpacity } from 'react-native'
 import { useAuth } from '@/providers/AuthProvider';
-import { ChannelList, ChannelPreview, ChannelPreviewMessenger, useChatContext, } from 'stream-chat-expo';
+import { ChannelList, ChannelPreviewMessenger, ChannelPreviewMessengerProps, useChatContext, } from 'stream-chat-expo';
 import { Stack, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,22 +9,33 @@ const Page = () => {
   const { client } = useChatContext();
   const router = useRouter();
 
-  const filter ={
-    members: {
-      $in: [client.user!.id],
-    },
+  const filter = {
+    members: { $in: [client.user!.id] },
   }
 
-    const CustomListItem = (props: any) => {
-      const {unread } = props;
-      const backgroundColor = unread ? 'bg-blue-100' : 'bg-white';
+  const options = {
+    state: true,
+    watch: true,
+    presence: true,
+  }
 
-      return(
-        <View className={`${backgroundColor}`}>
-          <ChannelPreviewMessenger {...props} />
-        </View>
-      )
-    }
+  const CustomListItem = (props: ChannelPreviewMessengerProps) => {
+  const { unread } = props;
+  const backgroundColor = unread ? { backgroundColor: '#DBEAFE' } : { backgroundColor: '#FFF' };
+
+  return (
+    <View style={backgroundColor}>
+      <ChannelPreviewMessenger {...props} />
+    </View>
+  );
+};
+    if (!client.user?.id) {
+    return (
+      <View className="flex-1 items-center justify-center bg-gray-400">
+        <Text>Loading user...</Text>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-gray-400">
@@ -43,7 +54,9 @@ const Page = () => {
           ),
         }}
       />
-      <ChannelList filters={filter}
+      <ChannelList
+      filters={filter}
+      options={options}
       onSelect={(channel) =>{
         router.push(`/(app)/(authenticated)/chat/${channel.id}`);
       }}

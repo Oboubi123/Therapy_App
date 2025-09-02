@@ -42,7 +42,7 @@ const Page = () => {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      email: 'oboubimakaveli@gmail.com',
+      email: 'oboubimakaveli@uenr.dev',
       password: '123456',
       confirmPassword: '123456',
     },
