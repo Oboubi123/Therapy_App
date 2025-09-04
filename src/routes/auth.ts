@@ -111,6 +111,7 @@ router.post('/login', async (req: Request, res: Response): Promise<any> => {
       id: user.id,
       email: user.email,
       role: user.role,
+      hashed_password: user.hashed_password,
     },
   });
 });

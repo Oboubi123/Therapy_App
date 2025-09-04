@@ -18,15 +18,21 @@ export const USERS: User[] = [
     role: UserRole.Client,
     hashed_password: '$2b$10$.MftzcPPsR5TUTYRyWGyQu9H9Fd3Q6olBlccI1qIAY3qXH7OQ.bQO', // dummy "123456"
   },
-  {
-    email: 'mell@uenr.dev',
-    id: '9vkqhc7',
-    role: UserRole.Therapist,
-    hashed_password: '$2b$10$U6aHdY7D9g9TxZ5bQU4X4eIrDEMao6j9G8hb1UBSs1QV95Pe/QWJe', // dummy "123456"
+   {
+    email: 'boakye@uenr.dev',
+    id: '9p30fh3',
+    role: UserRole.Client,
+    hashed_password: '$2b$10$.MftzcPPsR5TUTYRyWGyQu9H9Fd3Q6olBlccI1qIAY3qXH7OQ.bQO', // dummy "123456"
+  },
+   {
+    email: 'oboubmakaveli1@uenr.dev',
+    id: 'm6ngw7s',
+    role: UserRole.Client,
+    hashed_password: '$2b$10$kXTl6yzCri7qyyj10YaD0.am20VwvjhHyFa4mvPalQUCVHltMsEGu', // dummy "123456"
   },
   {
-    email: 'emmanuel@uenr.dev',
-    id: 'mpyprkj',
+    email: 'emmanuel1@uenr.dev',
+    id: 'ubhs4dh',
     role: UserRole.Therapist,
     hashed_password: '$2b$10$U6aHdY7D9g9TxZ5bQU4X4eIrDEMao6j9G8hb1UBSs1QV95Pe/QWJe', // dummy "123456"
   },
