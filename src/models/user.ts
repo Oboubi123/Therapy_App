@@ -25,7 +25,7 @@ export const USERS: User[] = [
     hashed_password: '$2b$10$.MftzcPPsR5TUTYRyWGyQu9H9Fd3Q6olBlccI1qIAY3qXH7OQ.bQO', // dummy "123456"
   },
    {
-    email: 'oboubmakaveli1@uenr.dev',
+    email: 'oboubimakaveli1@uenr.dev',
     id: 'm6ngw7s',
     role: UserRole.Client,
     hashed_password: '$2b$10$kXTl6yzCri7qyyj10YaD0.am20VwvjhHyFa4mvPalQUCVHltMsEGu', // dummy "123456"
