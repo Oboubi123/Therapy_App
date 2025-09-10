@@ -1,4 +1,4 @@
-import { View, Text, Pressable, TouchableOpacity } from 'react-native'
+import { View, Text, TouchableOpacity } from 'react-native'
 import { useAuth } from '@/providers/AuthProvider';
 import { ChannelList, ChannelPreviewMessenger, ChannelPreviewMessengerProps, useChatContext, } from 'stream-chat-expo';
 import { Stack, useRouter, Link } from 'expo-router';
@@ -10,6 +10,7 @@ const Page = () => {
   const router = useRouter();
 
   const filter = {
+    type: 'messaging',
     members: { $in: [client.user!.id] },
   }
 

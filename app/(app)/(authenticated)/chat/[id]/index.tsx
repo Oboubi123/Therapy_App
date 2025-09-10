@@ -23,6 +23,25 @@ const Page = () => {
     );
   }
 
+  // Guard: require user id and membership to access channel content
+  if (!client.user?.id) {
+    return (
+      <View className='flex-1 items-center justify-center'>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
+  const memberMap = (channel.state as any)?.members || {};
+  const isMember = !!memberMap[client.user.id];
+  if (!isMember) {
+    return (
+      <View className='flex-1 items-center justify-center'>
+        <Text>You are not a member of this channel.</Text>
+      </View>
+    );
+  }
+
   const handleSelectThread = (thread: any) => {
     setSelectedThread(thread);
     setSelectedChannel(channel);

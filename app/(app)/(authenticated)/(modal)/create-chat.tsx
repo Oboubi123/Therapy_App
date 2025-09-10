@@ -3,69 +3,107 @@ import { useEffect, useState } from 'react';
 import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { FlatList } from 'react-native-gesture-handler';
 import { useChatContext } from 'stream-chat-expo';
+import { API_URL, useAuth } from '@/providers/AuthProvider';
 
 const Page = () => {
   const [channelName, setChannelName] = useState('');
   const [channelDescription, setChannelDescription] = useState('');
   const router = useRouter();
   const { client } = useChatContext();
+  const { authState } = useAuth();
   const [users, setUsers] = useState<any[]>([]); // Array of user IDs to add to the channel
-
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const response = await client.queryUsers({ role: 'user' });
-      setUsers(response.users);
-      console.log('Fetched users:', response);
+      try {
+        if (!client.user?.id) return;
+
+        // Fetch and filter locally (SDK types don't include $nin)
+        const response = await client.queryUsers({}, { last_active: -1 }, { limit: 50 });
+        const list = response.users.filter((u) => u.id !== client.user!.id);
+        setUsers(list);
+        console.log('Fetched users:', list.map(u => u.id));
+      } catch (e) {
+        console.error('Failed to fetch users:', e);
+        Alert.alert('Error', 'Failed to load users');
+      }
     };
     fetchUsers();
-  }, []);
+  }, [client.user?.id]);
 
   const handleCreateChannel = async () => {
     if (!channelName.trim()) {
       Alert.alert('Please enter a channel name');
       return;
     }
+    if (!client.user?.id) {
+      Alert.alert('User not connected to chat');
+      return;
+    }
 
     const randomId = Math.random().toString(36).substring(2, 15);
 
-    const channel = client.channel('messaging', randomId, {
-      name: channelName.trim(),
-      createdBy: {
-        id: [client.user?.id],
-      },
-      image: 
-        'https://plus.unsplash.com/premium_photo-1683865775849-b958669dca26?q=80&w=1632&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-      channelDescription: channelDescription.trim(),
-      members: [{ user_id: client.user!.id, channel_role: 'admin' }],
-    } as any);
-
-    channel.create();
-
-    router.dismiss();
-  };
-
-  
-  const handleDirectConversation = async (userId: string) => {
     const channel = client.channel(
       'messaging',
-      `${client.user!.id}-${userId}`,
+      randomId,
       {
-        members: [
-          { user_id: client.user!.id, channel_role: 'admin' },
-          { user_id: userId, channel_role: 'member' },
-        ],
-        name: `${client.user!.name ?? client.user!.id} - ${
-          users.find((user) => user.id === userId)?.name || userId
-        }`,
-      } as any // 👈 this removes the red underline
+        name: channelName.trim(),
+        image:
+          'https://plus.unsplash.com/premium_photo-1683865775849-b958669dca26?q=80&w=1632&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+        channelDescription: channelDescription.trim(),
+        members: [client.user.id],
+      } as any // avoid TS complaints on custom fields
     );
 
-    channel.create();
-    router.dismiss();
+    try {
+      await channel.create();
+      console.log('Channel created successfully');
+      router.dismiss();
+    } catch (error) {
+      console.error('Error creating channel:', error);
+      Alert.alert('Error', 'Failed to create channel');
+    }
   };
 
- 
+  const handleDirectConversation = async (userId: string) => {
+    try {
+      if (!client.user?.id) {
+        Alert.alert('User not connected to chat');
+        return;
+      }
+      if (!authState?.jwt) {
+        Alert.alert('Missing auth token');
+        return;
+      }
+      const me = client.user.id;
+      const members = [me, userId].sort();
+
+      // Ask backend (with Stream secret) to create/get distinct DM
+      const res = await fetch(`${API_URL}/chat/dm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authState.jwt}`,
+        },
+        body: JSON.stringify({ members }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+
+      // Join/watch the server-created channel
+      const channel = client.channel('messaging', data.id);
+      await channel.watch();
+
+      console.log('Direct channel ready');
+      router.dismiss();
+    } catch (error) {
+      console.error('Error creating direct channel:', error);
+      Alert.alert('Error', 'Failed to create conversation');
+    }
+  };
 
   return (
     <View className='flex-1 bg-white p-4'>
@@ -82,11 +120,11 @@ const Page = () => {
         value={channelDescription}
         onChangeText={setChannelDescription}
         placeholder='Enter channel description'
-        multiline = {true}
+        multiline={true}
         numberOfLines={4}
       />
       <TouchableOpacity
-        className= {`rounded-lg p-4 ${
+        className={`rounded-lg p-4 ${
           channelName.trim() ? 'bg-blue-500' : 'bg-gray-300'
         }`}
         onPress={handleCreateChannel}
@@ -101,7 +139,7 @@ const Page = () => {
       </View>
 
       <Text className='text-gray-700 text-lg mb-4'>Start Direct Conversation</Text>
-      
+
       <FlatList
         data={users}
         renderItem={({ item }) => (
@@ -111,9 +149,8 @@ const Page = () => {
             <Text className='text-gray-800 text-lg'>{item.name || item.id}</Text>
           </TouchableOpacity>
         )}
-        keyExtractor={(item) => item.id.toString()}
-      />  
-
+        keyExtractor={(item) => item.id}
+      />
     </View>
   )
 }
