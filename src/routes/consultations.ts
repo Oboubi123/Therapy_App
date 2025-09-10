@@ -1,5 +1,6 @@
 import { Request, Response, Router } from 'express';
-import { USERS, UserRole } from '../models/user';
+import { UserRole } from '../models/user';
+import { getUsers } from '../store/users';
 import { CONSULTATIONS, ConsultationStatus } from '../models/consultation';
 import { authenticateToken } from '../middleware/auth';
 import dotenv from 'dotenv';
@@ -17,7 +18,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response): Promise
     return res.status(403).json({ message: 'Only clients can schedule consultations' });
   }
 
-  const therapist = USERS.find((u) => u.id === therapistId && u.role === UserRole.Therapist);
+  const therapist = getUsers().find((u) => u.id === therapistId && u.role === UserRole.Therapist);
   if (!therapist) {
     return res.status(404).json({ message: 'Therapist not found' });
   }
@@ -45,8 +46,9 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
       : consultation.therapistId === user.id
   );
 
+  const allUsers = getUsers();
   const consultationsWithClientInfo = userConsultations.map((consultation) => {
-    const client = USERS.find((user) => user.id === consultation.clientId);
+    const client = allUsers.find((u) => u.id === consultation.clientId);
     return {
       ...consultation,
       clientEmail: client?.email,

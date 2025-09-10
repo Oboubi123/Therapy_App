@@ -1,7 +1,8 @@
 import { Request, Response, Router } from 'express';
 import { StreamChat } from 'stream-chat';
 import { hashSync, compareSync, genSaltSync } from 'bcrypt';
-import { USERS, UserRole } from '../models/user';
+import { UserRole } from '../models/user';
+import { addUser, findUserByEmail, findUserById } from '../store/users';
 import dotenv from 'dotenv';
 import { sign } from 'jsonwebtoken';
 
@@ -26,7 +27,10 @@ if (!jwtSecret) {
   throw new Error('JWT_SECRET must be defined in environment variables');
 }
 
-const client = StreamChat.getInstance(streamApiKey, streamApiSecret);
+// Increase Stream Chat server-side timeout to avoid ECONNABORTED on slow networks
+const client = StreamChat.getInstance(streamApiKey, streamApiSecret, {
+  timeout: 15000, // 15s
+});
 
 // Register endpoint
 router.post('/register', async (req: Request, res: Response): Promise<any> => {
@@ -44,7 +48,7 @@ router.post('/register', async (req: Request, res: Response): Promise<any> => {
     });
   }
 
-  const existingUser = USERS.find((user) => user.email === email);
+  const existingUser = findUserByEmail(email);
 
   if (existingUser) {
     return res.status(400).json({
@@ -61,7 +65,7 @@ router.post('/register', async (req: Request, res: Response): Promise<any> => {
       hashed_password,
       role: UserRole.Client,
     };
-    USERS.push(user);
+    addUser(user);
 
     await client.upsertUser({
       id,
@@ -93,7 +97,7 @@ router.post('/register', async (req: Request, res: Response): Promise<any> => {
 // Login endpoint
 router.post('/login', async (req: Request, res: Response): Promise<any> => {
   const { email, password } = req.body;
-  const user = USERS.find((user) => user.email === email);
+  const user = findUserByEmail(email);
 
   // Fix: Compare password instead of hashing input
   if (!user || !compareSync(password, user.hashed_password)) {
@@ -122,7 +126,7 @@ router.post('/create-therapist', async (req: Request, res: Response): Promise<an
   const { email, password } = req.body;
 
   // Check if user already exists
-  const existingUser = USERS.find((user) => user.email === email);
+  const existingUser = findUserByEmail(email);
   if (existingUser) {
     return res.status(400).json({
       message: 'User already exists.',
@@ -138,7 +142,7 @@ router.post('/create-therapist', async (req: Request, res: Response): Promise<an
     role: UserRole.Therapist,
   };
 
-  USERS.push(user);
+  addUser(user);
 
   try {
     await client.upsertUser({
@@ -152,12 +156,28 @@ router.post('/create-therapist', async (req: Request, res: Response): Promise<an
       message: 'Therapist user created successfully.',
       user,
     });
-  } catch (error) {
-    console.error('Stream Chat user creation error:', error);
+  } catch (error: any) {
+    console.error('Stream Chat user creation error:', error?.message || error);
+    // Surface timeout hint to caller
     return res.status(500).json({
       message: 'Failed to create therapist user.',
+      reason: error?.code === 'ECONNABORTED' ? 'stream_timeout' : 'stream_error',
+      detail: error?.message,
     });
   }
 });
 
 export default router;
+
+// List therapists from local store (fallback for clients to discover therapists)
+router.get('/therapists', (_req: Request, res: Response): any => {
+  try {
+    // Lazy import to avoid circulars
+    const { getUsers, UserRole } = require('../store/users');
+    const all = getUsers();
+    const therapists = all.filter((u: any) => u.role === UserRole.Therapist);
+    return res.json(therapists.map((t: any) => ({ id: t.id, email: t.email, role: t.role })));
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to load therapists' });
+  }
+});
