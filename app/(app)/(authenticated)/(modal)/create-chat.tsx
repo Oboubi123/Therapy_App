@@ -18,11 +18,9 @@ const Page = () => {
       try {
         if (!client.user?.id) return;
 
-        // Fetch therapists only for client users; otherwise fetch all except self
-        const base = authState?.role === 'client' ? { role: 'therapist' } : {} as any;
-        const response = await client.queryUsers(base, { last_active: -1 }, { limit: 50 });
-        // Filter out self and the CBT bot from selectable list
-        const list = response.users.filter((u) => u.id !== client.user!.id && u.id !== 'cbt-bot');
+        // Fetch and filter locally (SDK types don't include $nin)
+        const response = await client.queryUsers({}, { last_active: -1 }, { limit: 50 });
+        const list = response.users.filter((u) => u.id !== client.user!.id);
         setUsers(list);
         console.log('Fetched users:', list.map(u => u.id));
       } catch (e) {

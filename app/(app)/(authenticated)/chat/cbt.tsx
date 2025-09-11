@@ -60,12 +60,17 @@ export default function CBTChatScreen() {
       if (!msg) return;
       if (msg.user?.id === 'cbt-bot') {
         setBotTyping(false);
-        if (triggerTimer.current) clearTimeout(triggerTimer.current);
         return;
       }
       if (msg.user?.id === authState?.user_id && msg.text?.trim()) {
-        if (lastTriggeredMessageId.current === msg.id) return;
-        lastTriggeredMessageId.current = msg.id;
+        // Ignore local echo (pending/temp ids) and only trigger once per server-received message
+        const isTemp = typeof msg.id === 'string' && msg.id.startsWith('temp');
+        const hasServerTime = !!msg.created_at;
+        if (isTemp || !hasServerTime) return;
+
+        const dedupeKey = `${msg.text}|${new Date(msg.created_at).getTime()}`;
+        if (lastTriggeredMessageId.current === dedupeKey) return;
+        lastTriggeredMessageId.current = dedupeKey;
         setBotTyping(true);
         const resolvedChannelId = (channelRef && typeof channelRef.id === 'string') ? channelRef.id : channelId;
         const resolvedCid = (channelRef && typeof channelRef.cid === 'string') ? channelRef.cid : (resolvedChannelId ? `messaging:${resolvedChannelId}` : undefined);
@@ -99,28 +104,8 @@ export default function CBTChatScreen() {
       // Send the user's message to Stream so it appears immediately
       await channelRef.sendMessage({ text: trimmed });
 
-      // Backend trigger happens in message.new listener
+      // Backend trigger happens in message.new listener only (no fallback to avoid duplicates)
       setBotTyping(true);
-      if (triggerTimer.current) clearTimeout(triggerTimer.current);
-      triggerTimer.current = setTimeout(async () => {
-        try {
-          const resolvedChannelId = (channelRef && typeof channelRef.id === 'string') ? channelRef.id : channelId;
-          const resolvedCid = (channelRef && typeof channelRef.cid === 'string') ? channelRef.cid : (resolvedChannelId ? `messaging:${resolvedChannelId}` : undefined);
-          console.log('CBT fallback trigger →', { channelId: resolvedChannelId, channelCid: resolvedCid, text: trimmed });
-          const res = await fetch(`${API_URL}/cbt/message`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${authState?.jwt}`,
-            },
-            body: JSON.stringify({ channelId: resolvedChannelId, channelCid: resolvedCid, message: trimmed }),
-          });
-          const txt = await res.text();
-          console.log('CBT fallback response ←', res.status, txt);
-        } catch (e) {
-          console.log('CBT fallback error', e);
-        }
-      }, 600);
     } catch (e) {
       // Silent fail; user sees their message. Bot might retry.
     }
@@ -142,11 +127,7 @@ export default function CBTChatScreen() {
           <Text className="text-gray-600">CBT Assistant is typing…</Text>
         </View>
       )}
-      <MessageInput
-        onSend={(params) => handleSend(params.text)}
-        attachButton={false}
-        placeholder='Share what’s on your mind…'
-      />
+      <MessageInput />
     </Channel>
   );
 }

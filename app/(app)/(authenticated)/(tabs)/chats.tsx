@@ -104,11 +104,18 @@ const Page = () => {
               </>
             )}
             {isTherapist && (
-              <Link href='/(app)/(authenticated)/(modal)/create-chat' asChild>
-                <TouchableOpacity className="mr-4">
-                  <Ionicons name="add-circle-outline" size={24} color="black" />
-                </TouchableOpacity>
-              </Link>
+              <>
+                <Link href='/(app)/(authenticated)/(modal)/upload-doc' asChild>
+                  <TouchableOpacity className="mr-4">
+                    <Ionicons name="cloud-upload-outline" size={24} color="black" />
+                  </TouchableOpacity>
+                </Link>
+                <Link href='/(app)/(authenticated)/(modal)/create-chat' asChild>
+                  <TouchableOpacity className="mr-4">
+                    <Ionicons name="add-circle-outline" size={24} color="black" />
+                  </TouchableOpacity>
+                </Link>
+              </>
             )}
             </>
           ),

@@ -1,18 +1,20 @@
 import { Consultation, ConsultationStatus, useAppointments } from '@/providers/AppointmentProvider';
-import { useAuth } from '@/providers/AuthProvider';
+import { API_URL, useAuth } from '@/providers/AuthProvider';
 import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Link, useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
-import { FlatList, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, FlatList, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import * as Linking from 'expo-linking';
 
 const Page = () => {
   const { getAppointments, updateAppointment } = useAppointments();
   const [appointments, setAppointments] = useState<Consultation[]>([]);
-  const { isTherapist } = useAuth();
+  const { isTherapist, authState } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const pendingCount = appointments.filter((a) => a.status === ConsultationStatus.Pending).length;
   const confirmedCount = appointments.filter((a) => a.status === ConsultationStatus.Confirmed).length;
   const completedCount = appointments.filter((a) => a.status === ConsultationStatus.Completed).length;
+  const [resources, setResources] = useState<any[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -28,8 +30,30 @@ const Page = () => {
   };
 
   const callTherapist = () => {
-    console.log('call therapist');
+    const phone = (process.env.EXPO_PUBLIC_THERAPIST_PHONE || process.env.EXPO_PUBLIC_SUPPORT_PHONE || '').replace(/\s+/g, '');
+    if (!phone) {
+      Alert.alert('Phone not configured', 'Set EXPO_PUBLIC_SUPPORT_PHONE to enable calling.');
+      return;
+    }
+    Linking.openURL(`tel:${phone}`);
   };
+
+  useEffect(() => {
+    const loadDocs = async () => {
+      try {
+        if (isTherapist || !authState?.jwt) return;
+        const res = await fetch(`${API_URL}/docs`, {
+          headers: { Authorization: `Bearer ${authState.jwt}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        // Show public resources first
+        const sorted = data.sort((a: any, b: any) => b.createdAt - a.createdAt);
+        setResources(sorted);
+      } catch {}
+    };
+    loadDocs();
+  }, [authState?.jwt, isTherapist]);
 
   const confirmSession = async (id: string) => {
     try {
@@ -129,9 +153,8 @@ const Page = () => {
                 <FontAwesome5 name="phone-alt" size={20} color="#f97316" />
                 <Text className="text-lg font-bold ml-2 text-orange-500">Call Your Therapist</Text>
               </View>
-              <Text className="text-gray-700">
-                Need immediate support? Your therapist is just a call away during business hours.
-              </Text>
+              <Text className="text-gray-700">Need immediate support? Your therapist is just a call away during business hours.</Text>
+              {/* Quick upload entry for therapists (visible via therapist list below) */}
               <Pressable
                 className="bg-orange-500 rounded-lg py-2 px-4 mt-3 self-start"
                 onPress={callTherapist}>
@@ -140,6 +163,26 @@ const Page = () => {
             </View>
           )}
         />
+      )}
+
+      {/* Client Resources */}
+      {!isTherapist && resources.length > 0 && (
+        <View className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mt-2">
+          <Text className="text-lg font-bold mb-2">Mental Health Resources</Text>
+          {resources.slice(0, 6).map((r) => (
+            <Pressable
+              key={r.id}
+              className="py-2"
+              onPress={() => {
+                const url = r.url || `${API_URL}/docs/${r.id}/download`;
+                Linking.openURL(url);
+              }}
+            >
+              <Text className="text-blue-700">{r.title || r.originalname || 'Document'}</Text>
+              <Text className="text-gray-500 text-xs">{new Date(r.createdAt).toLocaleString()}</Text>
+            </Pressable>
+          ))}
+        </View>
       )}
 
       {isTherapist && (
@@ -181,6 +224,11 @@ const Page = () => {
                 <Link href="/consultation/schedule" asChild>
                   <TouchableOpacity className="flex-1 bg-indigo-600 rounded-xl p-3 items-center">
                     <Text className="text-white font-semibold">Schedule</Text>
+                  </TouchableOpacity>
+                </Link>
+                <Link href="/(app)/(authenticated)/(modal)/upload-doc" asChild>
+                  <TouchableOpacity className="flex-1 bg-emerald-600 rounded-xl p-3 items-center">
+                    <Text className="text-white font-semibold">Upload Doc</Text>
                   </TouchableOpacity>
                 </Link>
               </View>
