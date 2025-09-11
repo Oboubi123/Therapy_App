@@ -1,0 +1,27 @@
+[
+  {
+    "id": "res-1",
+    "therapistId": "system",
+    "visibility": "public",
+    "title": "Managing Anxiety: A CBT Guide (NHS)",
+    "url": "https://www.nhs.uk/mental-health/self-help/guides-tools-and-activities/anxiety-self-help/",
+    "createdAt": 1757549918153
+  },
+  {
+    "id": "res-2",
+    "therapistId": "system",
+    "visibility": "public",
+    "title": "Depression: Self-Help & Support (NICE)",
+    "url": "https://www.nice.org.uk/guidance/cg90/ifp/chapter/Information-for-the-public",
+    "createdAt": 1757549918154
+  },
+  {
+    "id": "jwe9k1bj",
+    "therapistId": "ubhs4dh",
+    "visibility": "public",
+    "title": "Diet",
+    "filename": "1757551584825-Diet-and-Health.epub",
+    "originalname": "Diet-and-Health.epub",
+    "createdAt": 1757551585130
+  }
+]

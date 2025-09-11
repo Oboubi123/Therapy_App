@@ -1,16 +1,16 @@
-import OpenAI from 'openai';
+import { HfInference } from '@huggingface/inference';
 
-let openAIClient: OpenAI | null = null;
+let hfClient: HfInference | null = null;
 
-function getOpenAIClient(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
+function getHFClient(): HfInference {
+  const apiKey = process.env.HUGGINGFACE_API_KEY;
   if (!apiKey) {
-    throw new Error('OpenAI API key is not configured');
+    throw new Error('Hugging Face API key is not configured');
   }
-  if (!openAIClient) {
-    openAIClient = new OpenAI({ apiKey });
+  if (!hfClient) {
+    hfClient = new HfInference(apiKey);
   }
-  return openAIClient;
+  return hfClient;
 }
 
 const SYSTEM_PROMPT = `You are a CBT (Cognitive Behavioral Therapy) assistant.
@@ -40,35 +40,86 @@ export async function generateCbtReply(userText: string, history: ChatTurn[] = [
   }
 
   try {
-    const client = getOpenAIClient();
-    const models = ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'];
-    let lastError: any = null;
+    // Hugging Face only
+    const apiKey = process.env.HUGGINGFACE_API_KEY as string;
+    const endpoint = (process.env.HF_ENDPOINT_URL || '').trim();
+    const envModel = (process.env.HF_CBT_MODEL || '').trim();
+
+    // Build a single prompt (text-generation friendly). Endpoints typically expect this shape.
+    const prompt = [
+      SYSTEM_PROMPT,
+      ...history.slice(-10).map((t) => `${t.role.toUpperCase()}: ${t.content}`),
+      `USER: ${input}`,
+      'ASSISTANT:',
+    ].join('\n');
+
+    // 1) Prefer custom Inference Endpoint if provided (most reliable/provider-agnostic)
+    if (endpoint) {
+      // eslint-disable-next-line no-console
+      console.log('HF using endpoint:', endpoint);
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputs: prompt,
+          parameters: { max_new_tokens: 220, temperature: 0.5, return_full_text: false },
+        }),
+      });
+      const data: any = await resp.json();
+      const text = (Array.isArray(data) ? data[0]?.generated_text : data?.generated_text)?.trim()
+        || data?.choices?.[0]?.message?.content?.trim();
+      if (text) return text;
+      throw new Error(`HF endpoint returned no content: ${JSON.stringify(data)}`);
+    }
+
+    // 2) Hosted Inference API via @huggingface/inference
+    const hf = getHFClient();
+    const models = envModel ? [envModel] : ['HuggingFaceH4/zephyr-7b-beta', 'google/gemma-2-2b-it', 'TinyLlama/TinyLlama-1.1B-Chat-v1.0'];
+    let lastErr: any = null;
     for (const model of models) {
       try {
-        const response = await client.chat.completions.create({
+        // Try chatCompletion first (works for conversational models like Zephyr/Gemma)
+        // eslint-disable-next-line no-console
+        console.log('HF using model (chat):', model);
+        const chat = await hf.chatCompletion({
           model,
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
             ...history.slice(-10).map((t) => ({ role: t.role, content: t.content })),
             { role: 'user', content: input },
-          ],
+          ] as any,
+          max_tokens: 220,
           temperature: 0.5,
-          max_tokens: 180,
-        });
-        const text = response.choices?.[0]?.message?.content?.trim();
-        if (text) return text;
-      } catch (err: any) {
-        lastError = err;
-        // Try next model
+        } as any);
+        const chatText = (chat as any)?.choices?.[0]?.message?.content?.trim();
+        if (chatText) return chatText;
+      } catch (eChat: any) {
+        lastErr = eChat;
+        try {
+          // Fallback to plain text-generation prompt format
+          // eslint-disable-next-line no-console
+          console.log('HF using model (text-generation):', model);
+          const out = await hf.textGeneration({
+            model,
+            inputs: prompt,
+            parameters: { max_new_tokens: 220, temperature: 0.5, return_full_text: false },
+          } as any);
+          const genText = (out as any)?.generated_text?.trim();
+          if (genText) return genText;
+        } catch (eGen: any) {
+          lastErr = eGen;
+          continue;
+        }
       }
     }
-    if (lastError) {
-      throw new Error(lastError.message || 'OpenAI request failed');
-    }
-    throw new Error('OpenAI returned no content');
+    if (lastErr) throw lastErr;
+    throw new Error('HF returned no content');
   } catch (error: any) {
     // eslint-disable-next-line no-console
-    console.error('OpenAI error:', error?.message || error);
+    console.error('HF fatal error:', error?.message || error);
     throw error;
   }
 }

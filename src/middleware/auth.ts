@@ -44,3 +44,30 @@ export const authenticateToken = async (
     return res.status(401).json({ message: 'Invalid token' });
   }
 };
+
+// Optional auth: if Authorization header or ?token is present and valid, attach user; otherwise continue without error
+export const optionalAuthenticateToken = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<any> => {
+  try {
+    const authHeader = req.headers.authorization;
+    let token: string | undefined;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (typeof req.query.token === 'string') {
+      token = req.query.token as string;
+    }
+    if (token) {
+      const { userId } = jwt.verify(token, JWT_SECRET!) as { userId: string };
+      const user = findUserById(userId);
+      if (user) {
+        req.user = user;
+      }
+    }
+  } catch {
+    // ignore invalid tokens
+  }
+  next();
+};
