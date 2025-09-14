@@ -22,7 +22,26 @@ const Page = () => {
   const handleSubmit = async () => {
     try {
       if (!therapistId) {
-        Alert.alert('Error', 'Please enter a therapist ID');
+        Alert.alert('Error', 'Please select a therapist');
+        return;
+      }
+
+      // Validate appointment date is in the future
+      const now = new Date();
+      const appointmentDate = new Date(date);
+      
+      // Allow appointments at least 5 minutes in the future
+      const minimumTime = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes from now
+      
+      if (appointmentDate < minimumTime) {
+        Alert.alert('Invalid Date', 'Please select a date and time at least 5 minutes from now');
+        return;
+      }
+
+      // Validate appointment is not more than 6 months in the future
+      const maxFutureTime = new Date(now.getTime() + 6 * 30 * 24 * 60 * 60 * 1000); // 6 months
+      if (appointmentDate > maxFutureTime) {
+        Alert.alert('Invalid Date', 'Appointments cannot be scheduled more than 6 months in advance');
         return;
       }
 
@@ -105,7 +124,7 @@ const Page = () => {
             className="border border-gray-300 rounded-lg p-3 bg-gray-50"
             onPress={() => setShowTherapistPicker((s) => !s)}>
             <Text>
-              {therapists.find((t) => t.id === therapistId)?.name || therapistId || 'Choose therapist'}
+              {therapists.find((t) => t.id === therapistId)?.email || therapistId || 'Choose therapist'}
             </Text>
           </TouchableOpacity>
 
@@ -119,7 +138,7 @@ const Page = () => {
                     setTherapistId(item.id);
                     setShowTherapistPicker(false);
                   }}>
-                  <Text className="text-gray-800">{item.name || item.id}</Text>
+                  <Text className="text-gray-800">{item.email}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -128,8 +147,8 @@ const Page = () => {
           {therapistId?.length > 0 && (
             <View className="mt-2">
               <Text className="text-xs text-gray-500">Selected therapist</Text>
-              <Text className="text-gray-800 font-medium">
-                {therapists.find((t) => t.id === therapistId)?.name || therapistId}
+              <Text className="text-sm font-medium text-gray-800">
+                {therapists.find((t) => t.id === therapistId)?.email || therapistId}
               </Text>
             </View>
           )}

@@ -1,7 +1,7 @@
 import { Consultation, ConsultationStatus, useAppointments } from '@/providers/AppointmentProvider';
 import { API_URL, useAuth } from '@/providers/AuthProvider';
 import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Link, useFocusEffect } from 'expo-router';
+import { Link, useFocusEffect, router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import * as Linking from 'expo-linking';
@@ -86,6 +86,52 @@ const Page = () => {
     }
   };
 
+  const handleAppointmentTap = (item: Consultation) => {
+    if (!isTherapist) {
+      // For clients, check session status and time
+      if (item.status === ConsultationStatus.Pending) {
+        // Check if appointment time is due
+        const appointmentTime = new Date(item.dateTime);
+        const now = new Date();
+        
+        if (now >= appointmentTime) {
+          // Time is due but session still pending - cannot enter until therapist confirms
+          Alert.alert(
+            'Session Pending',
+            'Your appointment time has arrived, but the session hasn\'t been confirmed by your therapist yet. Please wait for confirmation.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          // Time not due yet - show info about waiting
+          const timeUntil = appointmentTime.getTime() - now.getTime();
+          const hoursUntil = Math.floor(timeUntil / (1000 * 60 * 60));
+          const minutesUntil = Math.floor((timeUntil % (1000 * 60 * 60)) / (1000 * 60));
+          
+          Alert.alert(
+            'Session Not Due',
+            `Your appointment is scheduled for ${appointmentTime.toLocaleString()}. ${
+              hoursUntil > 0 
+                ? `Please wait ${hoursUntil}h ${minutesUntil}m until your session time.`
+                : `Please wait ${minutesUntil} minutes until your session time.`
+            }`
+          );
+        }
+      } else if (item.status === ConsultationStatus.Confirmed) {
+        // Only confirmed sessions can enter video call
+        router.push(`/consultation/${item.id}`);
+      } else {
+        // Cancelled or completed sessions
+        Alert.alert(
+          'Session Status',
+          `This session is ${item.status.toLowerCase()}.`
+        );
+      }
+    } else {
+      // For therapists, all sessions go to video call
+      router.push(`/consultation/${item.id}`);
+    }
+  };
+
   return (
     <View className="flex-1 bg-gray-50 px-4 pt-4">
       {!isTherapist && (
@@ -117,30 +163,56 @@ const Page = () => {
             </View>
           )}
           renderItem={({ item }) => (
-            <Link href={`/consultation/${item.id}`} asChild>
-              <TouchableOpacity
-                className={`border-l-4 pl-3 py-2 ${
-                  item.status === ConsultationStatus.Confirmed
-                    ? 'border-green-500'
-                    : item.status === ConsultationStatus.Pending
-                    ? 'border-yellow-500'
-                    : item.status === ConsultationStatus.Cancelled
-                    ? 'border-red-500'
-                    : 'border-gray-500'
-                }`}>
-                <Text className="font-semibold">
-                  {item.status === ConsultationStatus.Confirmed
-                    ? 'Confirmed Session'
-                    : item.status === ConsultationStatus.Pending
-                    ? 'Pending Session'
-                    : item.status === ConsultationStatus.Cancelled
-                    ? 'Cancelled Session'
-                    : 'Completed Session'}
-                </Text>
-                <Text className="text-gray-600">{new Date(item.dateTime).toLocaleString()}</Text>
-                <Text className="text-gray-600">Dr. Simon</Text>
-              </TouchableOpacity>
-            </Link>
+            <TouchableOpacity
+              className={`border-l-4 pl-3 py-2 ${
+                item.status === ConsultationStatus.Confirmed
+                  ? 'border-green-500'
+                  : item.status === ConsultationStatus.Pending
+                  ? 'border-yellow-500'
+                  : item.status === ConsultationStatus.Cancelled
+                  ? 'border-red-500'
+                  : 'border-gray-500'
+              }`}
+              onPress={() => handleAppointmentTap(item)}>
+              <Text className="font-semibold">
+                {item.status === ConsultationStatus.Confirmed
+                  ? 'Confirmed Session'
+                  : item.status === ConsultationStatus.Pending
+                  ? 'Pending Session'
+                  : item.status === ConsultationStatus.Cancelled
+                  ? 'Cancelled Session'
+                  : 'Completed Session'}
+              </Text>
+              <Text className="text-gray-600">{new Date(item.dateTime).toLocaleString()}</Text>
+              <Text className="text-gray-600">Dr. Simon</Text>
+              {item.status === ConsultationStatus.Pending && (
+                <View className="flex-row items-center mt-1">
+                  {(() => {
+                    const appointmentTime = new Date(item.dateTime);
+                    const now = new Date();
+                    const isTimeDue = now >= appointmentTime;
+                    
+                    return isTimeDue ? (
+                      <>
+                        <Ionicons name="hourglass" size={16} color="#f59e0b" />
+                        <Text className="text-yellow-600 text-xs ml-1">Waiting for therapist confirmation</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons name="time" size={16} color="#6b7280" />
+                        <Text className="text-gray-500 text-xs ml-1">Session not due yet</Text>
+                      </>
+                    );
+                  })()}
+                </View>
+              )}
+              {item.status === ConsultationStatus.Confirmed && (
+                <View className="flex-row items-center mt-1">
+                  <Ionicons name="videocam" size={16} color="#10b981" />
+                  <Text className="text-green-600 text-xs ml-1">Tap to join session</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           )}
           ListEmptyComponent={() => (
             <View className="border-l-4 border-sky-500 pl-3 py-2">
