@@ -28,5 +28,11 @@
     "email": "believe@uenr.dev",
     "hashed_password": "$2b$10$tLbSPrPLqa6tX8OXxT7O1uevjqzkBl7QW4CbHIm.9zp5ReyA0U5L2",
     "role": "therapist"
+  },
+  {
+    "id": "ix1t4oj",
+    "email": "ABC@UENR.GH",
+    "hashed_password": "$2b$10$e4KlsxtspgSso1yYuEo/yeNuJZSruCzTzUDFU8WOdwM6dTBv4ZKG.",
+    "role": "client"
   }
 ]
